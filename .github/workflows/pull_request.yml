@@ -55,3 +55,41 @@ jobs:
 
       - name: Check formatting
         run: pnpm format
+
+  deploy-preview:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      SANITY_API_READ_TOKEN: ${{ secrets.SANITY_API_READ_TOKEN }}
+      NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ vars.NEXT_PUBLIC_SANITY_PROJECT_ID }}
+      NEXT_PUBLIC_SANITY_DATASET: ${{ vars.NEXT_PUBLIC_SANITY_DATASET }}
+    steps:
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.5.0'
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 8
+          run_install: false
+
+      - name: Install Vercel CLI
+        run: pnpm add --global vercel@latest
+
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Build Project Artifacts
+        run: vercel build --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Deploy Project Artifacts to Vercel
+        run: vercel deploy --prebuilt --token="${{ secrets.VERCEL_TOKEN }}" --env NEXT_PUBLIC_SANITY_PROJECT_ID="${{ env.NEXT_PUBLIC_SANITY_PROJECT_ID }}" --env NEXT_PUBLIC_SANITY_DATASET="${{ env.NEXT_PUBLIC_SANITY_DATASET }}" --env SANITY_API_READ_TOKEN="${{ env.SANITY_API_READ_TOKEN }}"
